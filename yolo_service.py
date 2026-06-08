@@ -5,7 +5,6 @@ import json
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# Import dependencies with friendly warnings if they are missing
 try:
     from PIL import Image
 except ImportError:
@@ -18,7 +17,6 @@ except ImportError:
     print("Error: ultralytics is not installed. Please run: pip install ultralytics")
     sys.exit(1)
 
-# Configuration
 PORT = int(os.environ.get("YOLO_PORT", 8000))
 MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "yolov8n.pt")
 
@@ -38,7 +36,6 @@ except Exception as e:
 
 class YoloRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Override to suppress default logging if desired, or keep it simple
         sys.stdout.write("%s - - [%s] %s\n" %
                          (self.address_string(),
                           self.log_date_time_string(),
@@ -52,21 +49,12 @@ class YoloRequestHandler(BaseHTTPRequestHandler):
                     self.send_error_response(400, "Cuerpo de solicitud vacío")
                     return
 
-                # Leer los bytes de la imagen directamente del cuerpo
                 image_bytes = self.rfile.read(content_length)
-                
-                # Decodificar imagen usando PIL
                 image = Image.open(io.BytesIO(image_bytes))
-                
-                # Ejecutar inferencia YOLO
                 results = model(image, verbose=False)
-                
-                # Obtener mapeo de clases
                 class_names = model.names
-                
                 botella = False
 
-                # Procesar resultados
                 for r in results:
                     for box in r.boxes:
                         cls_id = int(box.cls[0])
@@ -78,12 +66,10 @@ class YoloRequestHandler(BaseHTTPRequestHandler):
                     if botella:
                         break
                 
-                # Preparar respuesta JSON
                 response_data = {
                     "botella": botella
                 }
 
-                # Responder con JSON
                 response_bytes = json.dumps(response_data).encode('utf-8')
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -117,3 +103,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

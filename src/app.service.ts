@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export type DetectionResult = {
   botella: boolean;
+  detected_objects?: any[];
 };
 
 @Injectable()

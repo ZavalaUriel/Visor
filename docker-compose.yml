@@ -19,6 +19,8 @@ services:
     environment:
       - YOLO_HOST=yolo
       - YOLO_PORT=8000
+    volumes:
+      - ./debug_images:/app/debug_images
     depends_on:
       - yolo
     restart: unless-stopped

@@ -55,19 +55,20 @@ class YoloRequestHandler(BaseHTTPRequestHandler):
                 class_names = model.names
                 botella = False
 
+                detected_objects = []
                 for r in results:
                     for box in r.boxes:
                         cls_id = int(box.cls[0])
+                        conf = float(box.conf[0])
                         name = class_names.get(cls_id, "").lower()
+                        detected_objects.append({"name": name, "confidence": conf})
                         
                         if name in ["botella", "bottle"]:
                             botella = True
-                            break
-                    if botella:
-                        break
                 
                 response_data = {
-                    "botella": botella
+                    "botella": botella,
+                    "detected_objects": detected_objects
                 }
 
                 response_bytes = json.dumps(response_data).encode('utf-8')

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import * as path from 'path';
 
 export type DetectionResult = {
@@ -12,8 +12,7 @@ export type DetectionResult = {
 // Inicializar Firebase Admin
 const serviceAccountPath = path.join(process.cwd(), 'firebase-key.json');
 initializeApp({
-  credential: cert(require(serviceAccountPath)),
-  databaseURL: 'https://ecocycle-e9c04-default-rtdb.firebaseio.com'
+  credential: cert(require(serviceAccountPath))
 });
 
 @Injectable()
@@ -55,9 +54,10 @@ export class AppService {
         );
       }
 
-      // SI ES BOTELLA, ACTUALIZAR FIREBASE REALTIME DATABASE
-      if (parsed.botella) {
-        await this.incrementarConteoBotella('machine_001');
+      // SI ES BOTELLA, ACTUALIZAR FIREBASE FIRESTORE
+      // TEMPORAL: Fuerza botella a true para pruebas manuales con curl
+      if (parsed.botella || true) {
+        await this.incrementarConteoBotella('MQ-ECO-01');
       }
 
       return parsed;
@@ -73,24 +73,32 @@ export class AppService {
 
   private async incrementarConteoBotella(machineId: string) {
     try {
-      const db = getDatabase();
-      // 1. Obtener la sesión activa de la máquina
-      const activeSessionSnap = await db.ref(`machines/${machineId}/active_session`).once('value');
-      const sessionId = activeSessionSnap.val();
+      const db = getFirestore();
       
-      if (!sessionId) {
-        console.warn(`[WARNING] Se detectó una botella pero no hay una sesión activa para la máquina ${machineId}.`);
+      // 1. Obtener la sesión activa más reciente de la máquina
+      const sesionesRef = db.collection('sesiones_reciclaje');
+      const snapshot = await sesionesRef
+        .where('maquina_id', '==', machineId)
+        .orderBy('fecha', 'desc')
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        console.warn(`[WARNING] Se detectó una botella pero no hay una sesión reciente para la máquina ${machineId}.`);
         return;
       }
 
-      // 2. Incrementar el conteo en esa sesión
-      const conteoRef = db.ref(`sessions/${sessionId}/conteo`);
-      await conteoRef.transaction((currentValue) => {
-        return (currentValue || 0) + 1;
+      const doc = snapshot.docs[0];
+      
+      // 2. Incrementar el conteo de botellas y puntos
+      await doc.ref.update({
+        botellas: FieldValue.increment(1),
+        puntos: FieldValue.increment(0.1)
       });
-      console.log(`[INFO] Botella registrada en sesión ${sessionId}. Nuevo conteo actualizado.`);
+
+      console.log(`[INFO] Botella registrada en sesión ${doc.id}. Conteo y puntos actualizados en Firestore.`);
     } catch (error) {
-      console.error(`[ERROR] Fallo al actualizar Firebase:`, error);
+      console.error(`[ERROR] Fallo al actualizar Firebase Firestore:`, error);
     }
   }
 

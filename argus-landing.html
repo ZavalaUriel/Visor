@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Argus — Recicla. Gana. Cambia el mundo.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0F0D;
+    --bg2: #0F1612;
+    --bg3: #141C17;
+    --green: #2EE87A;
+    --green-dim: #1DB85C;
+    --green-glow: rgba(46,232,122,0.15);
+    --green-soft: rgba(46,232,122,0.08);
+    --white: #F0F5F2;
+    --muted: #6B8070;
+    --card: #111A14;
+    --border: rgba(46,232,122,0.12);
+    --border-strong: rgba(46,232,122,0.25);
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(46,232,122,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,232,122,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2.5rem;
+    background: rgba(10,15,13,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-logo-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  .nav-cta {
+    background: var(--green);
+    color: #0A0F0D !important;
+    padding: 0.55rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    transition: background 0.2s, transform 0.15s !important;
+  }
+
+  .nav-cta:hover {
+    background: #44f090 !important;
+    transform: translateY(-1px);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8rem 2rem 5rem;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+
+  .hero-orb-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(46,232,122,0.12) 0%, transparent 70%);
+    top: -100px; left: 50%;
+    transform: translateX(-50%);
+    animation: orb-float 8s ease-in-out infinite;
+  }
+
+  .hero-orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(46,232,122,0.06) 0%, transparent 70%);
+    bottom: 100px; right: -100px;
+    animation: orb-float 12s ease-in-out infinite reverse;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--green-soft);
+    color: var(--green);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: fade-up 0.8s ease both;
+  }
+
+  .hero-badge-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+    animation: fade-up 0.8s 0.1s ease both;
+  }
+
+  .hero-title .line-green {
+    color: var(--green);
+    display: block;
+    position: relative;
+  }
+
+  .hero-title .line-green::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green) 0%, transparent 100%);
+    opacity: 0.5;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--muted);
+    max-width: 520px;
+    font-weight: 300;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+    animation: fade-up 0.8s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fade-up 0.8s 0.3s ease both;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #0A0F0D;
+    padding: 0.85rem 2rem;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-primary:hover {
+    background: #44f090;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(46,232,122,0.3);
+  }
+
+  .btn-secondary {
+    color: var(--muted);
+    padding: 0.85rem 2rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 400;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--border-strong);
+    color: var(--white);
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(15,22,18,0.8);
+    backdrop-filter: blur(12px);
+    animation: fade-up 0.8s 0.5s ease both;
+  }
+
+  .stat-item {
+    flex: 1;
+    max-width: 240px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+
+  .stat-item:last-child { border-right: none; }
+  .stat-item:hover { background: var(--green-soft); }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.03em;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 2rem;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-tag::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--green);
+    display: inline-block;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-desc {
+    color: var(--muted);
+    font-size: 1.05rem;
+    font-weight: 300;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+
+  /* ── COMO FUNCIONA ── */
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+  }
+
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    gap: 1.25rem;
+    padding: 1.75rem 0;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+    transition: all 0.2s;
+  }
+
+  .step:first-child { padding-top: 0; }
+  .step:last-child { border-bottom: none; }
+
+  .step:hover .step-num {
+    background: var(--green);
+    color: #0A0F0D;
+    border-color: var(--green);
+  }
+
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    color: var(--green);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.25s;
+  }
+
+  .step-content h4 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  .step-content p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* MACHINE VISUAL */
+  .machine-visual {
+    position: relative;
+  }
+
+  .machine-frame {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .machine-frame::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 20px; right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .machine-icon-area {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .machine-body {
+    width: 140px;
+    height: 220px;
+    background: var(--bg3);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .machine-screen {
+    width: 100%;
+    height: 70px;
+    background: linear-gradient(180deg, #0d2016 0%, #0a1a10 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .machine-screen-text {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    color: var(--green);
+    letter-spacing: 0.05em;
+  }
+
+  .machine-screen-pts {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--green);
+    animation: counter 3s ease-in-out infinite;
+  }
+
+  .machine-slot {
+    width: 80%;
+    height: 8px;
+    background: #060e09;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-top: 1rem;
+  }
+
+  .machine-slots {
+    width: 100%;
+    padding: 0 12px;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .machine-slot-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.5rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .slot-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .machine-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .machine-brand {
+    font-family: var(--font-display);
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* Floating cards around machine */
+  .float-card {
+    position: absolute;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(8px);
+  }
+
+  .float-card.fc-ai {
+    top: 1.5rem;
+    right: -1rem;
+    animation: float-a 4s ease-in-out infinite;
+  }
+
+  .float-card.fc-pts {
+    bottom: 3rem;
+    right: -2rem;
+    animation: float-b 5s ease-in-out infinite;
+  }
+
+  .float-card.fc-ok {
+    bottom: 2rem;
+    left: -1.5rem;
+    animation: float-a 6s ease-in-out infinite 1s;
+  }
+
+  .float-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .float-label { color: var(--muted); font-weight: 300; }
+  .float-value { font-weight: 500; font-size: 0.8rem; margin-top: 1px; }
+
+  /* ── FEATURES GRID ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    background: var(--bg);
+    padding: 2rem;
+    transition: background 0.2s;
+    cursor: default;
+  }
+
+  .feature-card:hover {
+    background: var(--bg3);
+  }
+
+  .feature-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--green-soft);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .feature-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-desc {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* ── TECH STACK ── */
+  .tech-section {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+
+  .tech-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .tech-pill:hover {
+    border-color: var(--border-strong);
+    background: var(--bg3);
+    transform: translateY(-2px);
+  }
+
+  .tech-pill-name {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .tech-pill-role {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .tech-pill-tag {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-top: 6px;
+    display: inline-block;
+    font-weight: 500;
+  }
+
+  /* ── APP MOCKUP SECTION ── */
+  .app-section {
+    padding: 6rem 2rem;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .phone-frame {
+    width: 220px;
+    height: 440px;
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+    box-shadow: 0 0 80px rgba(46,232,122,0.08);
+  }
+
+  .phone-notch {
+    width: 60px;
+    height: 5px;
+    background: var(--border-strong);
+    border-radius: 100px;
+    margin: 10px auto 0;
+  }
+
+  .phone-screen {
+    padding: 1rem;
+    height: calc(100% - 30px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .phone-title {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .phone-pts-card {
+    background: linear-gradient(135deg, #1a3020 0%, #0d1f12 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .phone-pts-card::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, rgba(46,232,122,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .phone-pts-label { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .phone-pts-value {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin: 4px 0;
+  }
+  .phone-pts-sub { font-size: 0.55rem; color: var(--muted); }
+
+  .phone-qr-btn {
+    width: 100%;
+    background: var(--green);
+    color: #0A0F0D;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+
+  .phone-row-title {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  .phone-reward-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .reward-emoji { font-size: 0.9rem; }
+  .reward-name { font-size: 0.62rem; font-weight: 500; flex: 1; }
+  .reward-pts { font-size: 0.6rem; color: var(--green); font-weight: 600; }
+
+  .app-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .app-feat {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .app-feat-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--green-soft);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .app-feat-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.01em;
+  }
+
+  .app-feat-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* ── CTA FINAL ── */
+  .cta-section {
+    text-align: center;
+    padding: 7rem 2rem;
+  }
+
+  .cta-box {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    border-radius: 24px;
+    padding: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: 15%; right: 15%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .cta-box::after {
+    content: '';
+    position: absolute;
+    bottom: -120px; left: 50%;
+    transform: translateX(-50%);
+    width: 400px; height: 300px;
+    background: radial-gradient(circle, rgba(46,232,122,0.07) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+
+  .cta-desc {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-brand {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.02em;
+  }
+
+  .footer-copy {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .footer-team {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  @keyframes orb-float {
+    0%, 100% { transform: translateX(-50%) translateY(0px); }
+    50% { transform: translateX(-50%) translateY(-30px); }
+  }
+
+  @keyframes float-a {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes float-b {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(6px); }
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes counter {
+    0% { content: '0 pts'; }
+    0%, 40% { opacity: 1; }
+    50% { opacity: 0.4; }
+    60%, 100% { opacity: 1; }
+  }
+
+  @keyframes scan-line {
+    0% { top: 10%; }
+    50% { top: 85%; }
+    100% { top: 10%; }
+  }
+
+  /* scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.25rem; }
+    .nav-links { display: none; }
+    .how-grid, .app-grid { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .stats-bar { flex-wrap: wrap; }
+    .stat-item { flex: 1 1 50%; min-width: 140px; }
+    .cta-box { padding: 2.5rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    ARGUS
+  </div>
+  <ul class="nav-links">
+    <li><a href="#como-funciona">Cómo funciona</a></li>
+    <li><a href="#tecnologia">Tecnología</a></li>
+    <li><a href="#app">App móvil</a></li>
+    <li><a href="#cta" class="nav-cta">Registrarme</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Sistema inteligente de reciclaje — AkiraSoft
+  </div>
+
+  <h1 class="hero-title">
+    Recicla.<br>
+    <span class="line-green">Gana puntos.</span><br>
+    Cambia León.
+  </h1>
+
+  <p class="hero-subtitle">
+    Argus detecta automáticamente botellas PET, tapas y etiquetas usando inteligencia artificial. Cada botella se convierte en puntos reales canjeables por recompensas.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#cta" class="btn-primary">
+      ⬇ Descargar la app
+    </a>
+    <a href="#como-funciona" class="btn-secondary">
+      Ver cómo funciona →
+    </a>
+  </div>
+</section>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar reveal">
+  <div class="stat-item">
+    <span class="stat-number">0.10</span>
+    <span class="stat-label">MXN por botella reciclada</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-number">3</span>
+    <span class="stat-label">Tipos de material detectado</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-number">&lt;2s</span>
+    <span class="stat-label">Tiempo de respuesta IA</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-number">100%</span>
+    <span class="stat-label">Offline con Ollama local</span>
+  </div>
+</div>
+
+<!-- ── COMO FUNCIONA ── -->
+<section id="como-funciona">
+  <div class="container">
+    <div class="how-grid">
+      <div>
+        <p class="section-tag reveal">El proceso</p>
+        <h2 class="section-title reveal">Así de simple es reciclar con Argus</h2>
+        <p class="section-desc reveal">Desde que introduces la botella hasta que los puntos aparecen en tu app, todo ocurre en segundos.</p>
+
+        <div class="steps-list" style="margin-top: 2.5rem;">
+          <div class="step reveal">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <h4>Escanea el QR de la máquina</h4>
+              <p>Abre la app, apunta la cámara al código QR de la máquina Argus y vincula tu sesión de forma instantánea.</p>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <h4>Introduce tu botella PET</h4>
+              <p>La cámara interna analiza el objeto. Gemini Flash detecta si es PET válido, tapa o etiqueta en menos de 2 segundos.</p>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <h4>La compuerta se abre automáticamente</h4>
+              <p>El Arduino acciona el servomotor del compartimento correcto. Solo entra lo que la IA validó.</p>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step-num">04</div>
+            <div class="step-content">
+              <h4>Los puntos llegan a tu monedero</h4>
+              <p>0.10 MXN por botella, acumulados en tiempo real. Úsalos para canjear recompensas desde la app.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MACHINE VISUAL -->
+      <div class="machine-visual reveal">
+        <div class="machine-frame">
+          <div class="machine-icon-area">
+            <div class="machine-body">
+              <div class="machine-screen">
+                <div class="machine-screen-text">PUNTOS ACUMULADOS</div>
+                <div class="machine-screen-pts" id="pts-counter">+0.30 MXN</div>
+              </div>
+              <div class="machine-slot" style="margin-top:1.2rem;"></div>
+              <div class="machine-slots">
+                <div class="machine-slot-label">
+                  <div class="slot-dot" style="background:#2EE87A;"></div>
+                  Botellas PET
+                </div>
+                <div class="machine-slot-label">
+                  <div class="slot-dot" style="background:#60a5fa;"></div>
+                  Tapas
+                </div>
+                <div class="machine-slot-label">
+                  <div class="slot-dot" style="background:#f59e0b;"></div>
+                  Etiquetas
+                </div>
+              </div>
+              <div class="machine-footer">
+                <span class="machine-brand">ARGUS — AKIRASOFT</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating cards -->
+          <div class="float-card fc-ai">
+            <div class="float-icon" style="background: rgba(46,232,122,0.1); border: 1px solid rgba(46,232,122,0.2);">🤖</div>
+            <div>
+              <div class="float-label">IA detectó</div>
+              <div class="float-value" style="color: var(--green);">PET válido ✓</div>
+            </div>
+          </div>
+
+          <div class="float-card fc-pts">
+            <div class="float-icon" style="background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2);">💰</div>
+            <div>
+              <div class="float-label">Puntos añadidos</div>
+              <div class="float-value" style="color: #60a5fa;">+$0.10 MXN</div>
+            </div>
+          </div>
+
+          <div class="float-card fc-ok">
+            <div class="float-icon" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);">📡</div>
+            <div>
+              <div class="float-label">Conectado a</div>
+              <div class="float-value" style="color: #f59e0b;">Contabo Cloud</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section style="padding: 0 2rem 6rem;">
+  <div class="container">
+    <p class="section-tag reveal">Capacidades</p>
+    <h2 class="section-title reveal" style="margin-bottom: 2.5rem;">Todo lo que hace Argus por ti</h2>
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-title">Visión artificial</div>
+        <div class="feature-desc">Gemini 1.5 Flash analiza cada frame. Detecta PET, tapas y etiquetas con alta precisión incluso con iluminación variable.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">App nativa Kotlin</div>
+        <div class="feature-desc">Rendimiento puro en Android. Escaneo QR con CameraX, puntos en tiempo real y catálogo de recompensas siempre disponible.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-title">Funciona sin internet</div>
+        <div class="feature-desc">Ollama corre el modelo de IA localmente en la máquina. Si falla la red, Argus sigue operando sin interrupciones.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <div class="feature-title">Sistema de recompensas</div>
+        <div class="feature-desc">Los puntos son reales. Canjéalos por descuentos, productos o servicios directamente desde el monedero digital de tu app.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Dashboard administrativo</div>
+        <div class="feature-desc">Gestión completa en Next.js. Historial de reciclaje, usuarios activos, estadísticas y catálogo de recompensas en tiempo real.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">Seguridad robusta</div>
+        <div class="feature-desc">Auth JWT, UUIDs en todos los registros y comunicación cifrada. Tus puntos y datos están protegidos en PostgreSQL + Contabo.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TECH STACK ── -->
+<section id="tecnologia" class="tech-section">
+  <div class="container">
+    <p class="section-tag reveal">Stack tecnológico</p>
+    <h2 class="section-title reveal">Construido con lo mejor del ecosistema</h2>
+    <p class="section-desc reveal">Arquitectura de microservicios diseñada para escalar desde el prototipo hasta producción real.</p>
+    <div class="tech-grid reveal">
+      <div class="tech-pill">
+        <div class="tech-pill-name">NestJS</div>
+        <div class="tech-pill-role">Backend / Argus</div>
+        <span class="tech-pill-tag" style="background: rgba(234,0,112,0.1); color: #ea0070;">Node.js</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Kotlin</div>
+        <div class="tech-pill-role">App Android</div>
+        <span class="tech-pill-tag" style="background: rgba(139,92,246,0.1); color: #8b5cf6;">Nativa</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Next.js</div>
+        <div class="tech-pill-role">Dashboard web</div>
+        <span class="tech-pill-tag" style="background: rgba(255,255,255,0.07); color: #aaa;">React</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">PostgreSQL</div>
+        <div class="tech-pill-role">Base de datos</div>
+        <span class="tech-pill-tag" style="background: rgba(96,165,250,0.1); color: #60a5fa;">Relacional</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Gemini Flash</div>
+        <div class="tech-pill-role">IA Cloud</div>
+        <span class="tech-pill-tag" style="background: rgba(46,232,122,0.1); color: var(--green);">Google</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Ollama</div>
+        <div class="tech-pill-role">IA Local</div>
+        <span class="tech-pill-tag" style="background: rgba(245,158,11,0.1); color: #f59e0b;">Offline</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Arduino</div>
+        <div class="tech-pill-role">Controlador IoT</div>
+        <span class="tech-pill-tag" style="background: rgba(0,168,168,0.1); color: #00a8a8;">Hardware</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">Contabo</div>
+        <div class="tech-pill-role">Servidor cloud</div>
+        <span class="tech-pill-tag" style="background: rgba(255,100,50,0.1); color: #ff6432;">VPS</span>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-name">AWS S3</div>
+        <div class="tech-pill-role">Almacenamiento</div>
+        <span class="tech-pill-tag" style="background: rgba(245,158,11,0.1); color: #f59e0b;">Cloud</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── APP MOCKUP ── -->
+<section id="app" class="app-section">
+  <div class="container">
+    <div class="app-grid">
+      <!-- Phone mockup -->
+      <div class="reveal" style="display:flex; flex-direction:column; align-items:center; gap:1rem;">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-title">ARGUS</div>
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--green-soft);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:0.6rem;">👤</div>
+            </div>
+
+            <div class="phone-pts-card">
+              <div class="phone-pts-label">Tu monedero</div>
+              <div class="phone-pts-value">$4.70</div>
+              <div class="phone-pts-sub">47 botellas recicladas este mes</div>
+            </div>
+
+            <button class="phone-qr-btn">
+              📷 &nbsp;Escanear QR Argus
+            </button>
+
+            <div class="phone-row-title">Recompensas disponibles</div>
+            <div class="phone-reward-item">
+              <span class="reward-emoji">☕</span>
+              <span class="reward-name">Café gratis UTL</span>
+              <span class="reward-pts">30 pts</span>
+            </div>
+            <div class="phone-reward-item">
+              <span class="reward-emoji">🛒</span>
+              <span class="reward-name">Descuento tienda</span>
+              <span class="reward-pts">50 pts</span>
+            </div>
+            <div class="phone-reward-item">
+              <span class="reward-emoji">🎟️</span>
+              <span class="reward-name">Evento campus</span>
+              <span class="reward-pts">100 pts</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem; color:var(--muted); text-align:center; letter-spacing:0.04em;">Disponible para Android</div>
+      </div>
+
+      <!-- App features -->
+      <div>
+        <p class="section-tag reveal">Monedero digital</p>
+        <h2 class="section-title reveal">Tu app, tu recompensa</h2>
+        <p class="section-desc reveal" style="margin-bottom:2rem;">La app de Argus convierte cada botella que reciclas en valor real. Sencilla, rápida y siempre conectada a la máquina.</p>
+
+        <div class="app-features">
+          <div class="app-feat reveal">
+            <div class="app-feat-icon">📷</div>
+            <div>
+              <div class="app-feat-title">QR Instantáneo</div>
+              <div class="app-feat-desc">Vincula tu sesión con la máquina en un segundo. Deep linking abre la app directamente desde cualquier lector de cámara.</div>
+            </div>
+          </div>
+          <div class="app-feat reveal">
+            <div class="app-feat-icon">⚡</div>
+            <div>
+              <div class="app-feat-title">Puntos en tiempo real</div>
+              <div class="app-feat-desc">Cada botella suma inmediatamente. WebSocket mantiene el saldo actualizado sin necesidad de recargar la pantalla.</div>
+            </div>
+          </div>
+          <div class="app-feat reveal">
+            <div class="app-feat-icon">🎁</div>
+            <div>
+              <div class="app-feat-title">Catálogo de recompensas</div>
+              <div class="app-feat-desc">Canjea tus puntos por recompensas reales. El historial completo de transacciones siempre disponible en tu perfil.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA FINAL ── -->
+<section id="cta" class="cta-section">
+  <div class="container">
+    <div class="cta-box reveal">
+      <h2 class="cta-title">Empieza a reciclar<br><span style="color: var(--green);">y ganar desde hoy</span></h2>
+      <p class="cta-desc">Descarga la app, escanea el QR de la máquina Argus más cercana y convierte tus botellas en recompensas reales. El planeta y tu bolsillo te lo agradecen.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn-primary" style="font-size:1rem; padding:1rem 2.5rem;">
+          ⬇ Descargar para Android
+        </a>
+        <a href="#" class="btn-secondary" style="font-size:1rem; padding:1rem 2.5rem;">
+          Abrir dashboard →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-brand">ARGUS</div>
+  <div class="footer-copy">© 2025 — Proyecto Integrador UTL IDGS-803</div>
+  <div class="footer-team">Desarrollado por AkiraSoft</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => observer.observe(el));
+
+  // Points counter animation on machine
+  const ptsEl = document.getElementById('pts-counter');
+  const values = ['+0.10 MXN', '+0.20 MXN', '+0.30 MXN', '+0.40 MXN', '+0.50 MXN'];
+  let idx = 0;
+  setInterval(() => {
+    idx = (idx + 1) % values.length;
+    ptsEl.style.opacity = '0';
+    ptsEl.style.transform = 'translateY(-4px)';
+    setTimeout(() => {
+      ptsEl.textContent = values[idx];
+      ptsEl.style.opacity = '1';
+      ptsEl.style.transform = 'translateY(0)';
+    }, 300);
+  }, 1800);
+  ptsEl.style.transition = 'opacity 0.3s, transform 0.3s';
+</script>
+</body>
+</html>

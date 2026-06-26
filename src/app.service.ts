@@ -1,10 +1,20 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
+import * as path from 'path';
 
 export type DetectionResult = {
   botella: boolean;
   detected_objects?: any[];
 };
+
+// Inicializar Firebase Admin
+const serviceAccountPath = path.join(process.cwd(), 'firebase-key.json');
+initializeApp({
+  credential: cert(require(serviceAccountPath)),
+  databaseURL: 'https://ecocycle-e9c04-default-rtdb.firebaseio.com'
+});
 
 @Injectable()
 export class AppService {
@@ -45,6 +55,11 @@ export class AppService {
         );
       }
 
+      // SI ES BOTELLA, ACTUALIZAR FIREBASE REALTIME DATABASE
+      if (parsed.botella) {
+        await this.incrementarConteoBotella('machine_001');
+      }
+
       return parsed;
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -53,6 +68,29 @@ export class AppService {
       throw new InternalServerErrorException(
         `No se pudo conectar al servicio YOLO en ${this.yoloUrl}. Asegúrate de que yolo_service.py esté corriendo. Detalle: ${(error as Error).message}`,
       );
+    }
+  }
+
+  private async incrementarConteoBotella(machineId: string) {
+    try {
+      const db = getDatabase();
+      // 1. Obtener la sesión activa de la máquina
+      const activeSessionSnap = await db.ref(`machines/${machineId}/active_session`).once('value');
+      const sessionId = activeSessionSnap.val();
+      
+      if (!sessionId) {
+        console.warn(`[WARNING] Se detectó una botella pero no hay una sesión activa para la máquina ${machineId}.`);
+        return;
+      }
+
+      // 2. Incrementar el conteo en esa sesión
+      const conteoRef = db.ref(`sessions/${sessionId}/conteo`);
+      await conteoRef.transaction((currentValue) => {
+        return (currentValue || 0) + 1;
+      });
+      console.log(`[INFO] Botella registrada en sesión ${sessionId}. Nuevo conteo actualizado.`);
+    } catch (error) {
+      console.error(`[ERROR] Fallo al actualizar Firebase:`, error);
     }
   }
 
@@ -65,4 +103,3 @@ export class AppService {
     return typeof record.botella === 'boolean';
   }
 }
-

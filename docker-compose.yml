@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile.yolo
     container_name: argus_yolo
+    env_file: ../ecocycle.env
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -16,11 +17,13 @@ services:
     container_name: argus_backend
     ports:
       - "3000:3000"
+    env_file: ../ecocycle.env
     environment:
       - YOLO_HOST=yolo
-      - YOLO_PORT=8000
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
     volumes:
       - ./debug_images:/app/debug_images
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     depends_on:
       - yolo
     restart: unless-stopped

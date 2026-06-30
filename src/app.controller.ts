@@ -1,6 +1,10 @@
 import {
   BadRequestException,
   Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -27,7 +31,6 @@ export class AppController {
       throw new BadRequestException('No se recibio el archivo de imagen.');
     }
 
-    // Guardar la foto físicamente para depuración/validación visual
     try {
       const debugDir = path.join(process.cwd(), 'debug_images');
       if (!fs.existsSync(debugDir)) {
@@ -36,7 +39,6 @@ export class AppController {
       const filename = `captura_${Date.now()}.jpg`;
       const filePath = path.join(debugDir, filename);
       fs.writeFileSync(filePath, file.buffer);
-      console.log(`[DEBUG] Imagen guardada en: ${filePath}`);
     } catch (err) {
       console.error(`[ERROR] No se pudo guardar la imagen de depuración: ${err}`);
     }
@@ -46,5 +48,40 @@ export class AppController {
       file.mimetype,
       file.originalname,
     );
+  }
+
+  @Post('machine-detect')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('image'))
+  async machineDetect(
+    @UploadedFile() file?: UploadedImage,
+    @Headers('x-machine-id') machineId?: string,
+  ) {
+    if (!file?.buffer) {
+      throw new BadRequestException('No se recibio el archivo de imagen.');
+    }
+
+    // Guardar imagen de depuración
+    try {
+      const debugDir = path.join(process.cwd(), 'debug_images');
+      if (!fs.existsSync(debugDir)) {
+        fs.mkdirSync(debugDir, { recursive: true });
+      }
+      const filename = `esp32_${Date.now()}.jpg`;
+      const filePath = path.join(debugDir, filename);
+      fs.writeFileSync(filePath, file.buffer);
+    } catch (err) {
+      console.error(`[ERROR] No se pudo guardar imagen ESP32: ${err}`);
+    }
+
+    const id = machineId ?? 'machine_001';
+
+    return this.appService.detectFromBufferWithSession(file.buffer, id);
+  }
+
+  @Get('active-session/:machineId')
+  async getActiveSession(@Param('machineId') machineId: string) {
+    const sessionId = await this.appService.getActiveSession(machineId);
+    return { sessionId };
   }
 }

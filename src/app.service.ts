@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FirebaseService } from './firebase.service';
 
 export type DetectionResult = {
   botella: boolean;
@@ -10,7 +11,10 @@ export type DetectionResult = {
 export class AppService {
   private readonly yoloUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly firebase: FirebaseService,
+  ) {
     const port = this.configService.get<string>('YOLO_PORT') ?? '8000';
     const host = this.configService.get<string>('YOLO_HOST') ?? 'localhost';
     this.yoloUrl = `http://${host}:${port}/detect`;
@@ -51,8 +55,36 @@ export class AppService {
         throw error;
       }
       throw new InternalServerErrorException(
-        `No se pudo conectar al servicio YOLO en ${this.yoloUrl}. Asegúrate de que yolo_service.py esté corriendo. Detalle: ${(error as Error).message}`,
+        `No se pudo conectar al servicio YOLO en ${this.yoloUrl}. Detalle: ${(error as Error).message}`,
       );
+    }
+  }
+
+  async detectFromBufferWithSession(
+    buffer: Buffer,
+    machineId: string,
+  ): Promise<DetectionResult & { sessionId?: string }> {
+    const detection = await this.detectFromBuffer(buffer);
+
+    try {
+      const sessionId = await this.firebase.getActiveSession(machineId);
+      if (sessionId && detection.botella) {
+        const count = await this.firebase.incrementBottleCount(sessionId);
+        console.log(`[Firebase] Botella contada. Sesión: ${sessionId}, Total: ${count}`);
+        await this.firebase.setBotellaState(sessionId, true);
+      }
+      return { ...detection, sessionId: sessionId ?? undefined };
+    } catch (e) {
+      console.warn(`[Firebase] No se pudo registrar detección: ${(e as Error).message}`);
+      return detection;
+    }
+  }
+
+  async getActiveSession(machineId: string): Promise<string | null> {
+    try {
+      return await this.firebase.getActiveSession(machineId);
+    } catch {
+      return null;
     }
   }
 
@@ -60,9 +92,7 @@ export class AppService {
     if (!value || typeof value !== 'object') {
       return false;
     }
-
     const record = value as Record<string, unknown>;
     return typeof record.botella === 'boolean';
   }
 }
-

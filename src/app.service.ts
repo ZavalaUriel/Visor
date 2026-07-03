@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from './firebase.service';
+import * as http from 'http';
 
 export type DetectionResult = {
   botella: boolean;
@@ -16,7 +17,8 @@ export class AppService {
     private readonly firebase: FirebaseService,
   ) {
     const port = this.configService.get<string>('YOLO_PORT') ?? '8000';
-    const host = this.configService.get<string>('YOLO_HOST') ?? 'localhost';
+    const host = this.configService.get<string>('YOLO_HOST') ?? '172.18.0.2';
+    console.log(`[YOLO] ConfigService host=${JSON.stringify(host)} port=${JSON.stringify(port)}`);
     this.yoloUrl = `http://${host}:${port}/detect`;
   }
 
@@ -26,30 +28,54 @@ export class AppService {
     _filename?: string,
   ): Promise<DetectionResult> {
     try {
-      const response = await fetch(this.yoloUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-        },
-        body: new Uint8Array(buffer),
+      const result = await new Promise<DetectionResult>((resolve, reject) => {
+        const urlObj = new URL(this.yoloUrl);
+        const options: http.RequestOptions = {
+          hostname: urlObj.hostname,
+          port: parseInt(urlObj.port, 10),
+          path: urlObj.pathname,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': buffer.length,
+          },
+          timeout: 15000,
+          family: 4,
+          agent: false,
+        };
+
+        const req = http.request(options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            try {
+              if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                const parsed = JSON.parse(data);
+                if (this.isDetectionResult(parsed)) {
+                  resolve(parsed);
+                } else {
+                  reject(new BadRequestException('La respuesta del modelo YOLO no tiene el formato esperado.'));
+                }
+              } else {
+                reject(new BadRequestException(`El servicio YOLO respondió con error (${res.statusCode}): ${data.slice(0, 200)}`));
+              }
+            } catch (e) {
+              reject(new BadRequestException(`Error parseando respuesta YOLO: ${(e as Error).message}`));
+            }
+          });
+        });
+
+        req.on('error', (err: NodeJS.ErrnoException) => {
+            console.error('[HTTP_ERROR] message=' + err.message + ' code=' + err.code + ' errno=' + err.errno + ' syscall=' + err.syscall);
+            reject(err);
+        });
+        req.on('timeout', () => { console.error('[HTTP_TIMEOUT]'); req.destroy(); reject(new Error('Timeout')); });
+
+        req.write(buffer);
+        req.end();
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Error desconocido');
-        throw new BadRequestException(
-          `El servicio YOLO respondió con error (${response.status}): ${errorText}`,
-        );
-      }
-
-      const parsed = await response.json();
-
-      if (!this.isDetectionResult(parsed)) {
-        throw new BadRequestException(
-          'La respuesta del modelo YOLO no tiene el formato esperado.',
-        );
-      }
-
-      return parsed;
+      return result;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;

@@ -1,114 +1,146 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as admin from 'firebase-admin';
+import * as https from 'https';
+import * as http from 'http';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private readonly logger = new Logger(FirebaseService.name);
-  private database: admin.database.Database | null = null;
+  private dbBaseUrl: string = '';
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    const serviceAccountPath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH');
-
-    try {
-      if (serviceAccountPath) {
-        const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          databaseURL: `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`,
-        });
-      } else {
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-          databaseURL: this.configService.get<string>('FIREBASE_DATABASE_URL'),
-        });
-      }
-      this.database = admin.database();
-      this.logger.log('Firebase conectado a Realtime Database');
-    } catch (e) {
-      this.logger.warn(`Firebase no disponible: ${(e as Error).message}. Las detecciones no se persistirán.`);
+    const url = this.configService.get<string>('FIREBASE_DATABASE_URL');
+    if (url) {
+      this.dbBaseUrl = url.replace(/\/+$/, '');
+      this.logger.log(`Firebase REST endpoint: ${this.dbBaseUrl}`);
+    } else {
+      this.logger.warn('FIREBASE_DATABASE_URL no configurada. Firebase no disponible.');
     }
   }
 
-  private checkDb() {
-    if (!this.database) {
-      throw new Error('Firebase no inicializado. Revisa FIREBASE_SERVICE_ACCOUNT_PATH en .env');
-    }
+  private async restRequest(method: string, path: string, body?: any): Promise<any> {
+    const url = `${this.dbBaseUrl}${path}.json`;
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(url);
+      const client = urlObj.protocol === 'https:' ? https : http;
+      const options: https.RequestOptions = {
+        hostname: urlObj.hostname,
+        port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+        path: urlObj.pathname + urlObj.search,
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        timeout: 10000,
+      };
+      const req = client.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            resolve(data ? JSON.parse(data) : null);
+          } catch {
+            resolve(data);
+          }
+        });
+      });
+      req.on('error', (err) => reject(err));
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+      if (body !== undefined) req.write(JSON.stringify(body));
+      req.end();
+    });
   }
 
   async getActiveSession(machineId: string): Promise<string | null> {
-    this.checkDb();
-    const snap = await this.database!.ref(`maquinas/${machineId}/sesion_activa`).once('value');
-    return snap.val() as string | null;
+    try {
+      return await this.restRequest('GET', `/maquinas/${machineId}/sesion_activa`);
+    } catch { return null; }
   }
 
   async incrementBottleCount(sessionId: string): Promise<number> {
-    this.checkDb();
-    const ref = this.database!.ref(`sessions/${sessionId}/botellas/count`);
-    const result = await ref.transaction((current) => (current ?? 0) + 1);
-    return (result.snapshot.val() as number) ?? 0;
+    try {
+      const current: number | null = await this.restRequest('GET', `/sessions/${sessionId}/botellas/count`);
+      const newCount = (current ?? 0) + 1;
+      await this.restRequest('PUT', `/sessions/${sessionId}/botellas/count`, newCount);
+      return newCount;
+    } catch { return 0; }
   }
 
   async setBotellaState(sessionId: string, botella: boolean) {
-    this.checkDb();
-    const ref = this.database!.ref(`sessions/${sessionId}/botellas/lastResult`);
-    await ref.set({
-      botella,
-      timestamp: Date.now(),
-    });
+    try {
+      await this.restRequest('PUT', `/sessions/${sessionId}/botellas/lastResult`, {
+        botella, timestamp: Date.now(),
+      });
+    } catch (e) {
+      this.logger.warn(`setBotellaState error: ${(e as Error).message}`);
+    }
   }
 
   async setFirstValidation(sessionId: string, esBotella: boolean, machineId: string) {
-    this.checkDb();
-    const ref = this.database!.ref(`sessions/${sessionId}`);
-    await ref.update({
-      validacion1: { esBotella, machineId, timestamp: Date.now() },
-      validacion2: null,
-    });
+    try {
+      await this.restRequest('PATCH', `/sessions/${sessionId}`, {
+        validacion1: { esBotella, machineId, timestamp: Date.now() },
+        validacion2: null,
+      });
+    } catch (e) {
+      this.logger.warn(`setFirstValidation error: ${(e as Error).message}`);
+      throw e;
+    }
   }
 
   async setActiveSession(machineId: string, sessionId: string) {
-    this.checkDb();
-    await this.database!.ref(`maquinas/${machineId}/sesion_activa`).set(sessionId);
+    try {
+      await this.restRequest('PUT', `/maquinas/${machineId}/sesion_activa`, sessionId);
+    } catch (e) {
+      this.logger.warn(`setActiveSession error: ${(e as Error).message}`);
+      throw e;
+    }
   }
 
   async setGateCommand(machineId: string, openOuter: boolean, sessionId: string) {
-    this.checkDb();
-    await this.database!.ref(`maquinas/${machineId}/gate_command`).set({ openOuter, sessionId });
+    try {
+      await this.restRequest('PUT', `/maquinas/${machineId}/gate_command`, { openOuter, sessionId });
+    } catch (e) {
+      this.logger.warn(`setGateCommand error: ${(e as Error).message}`);
+      throw e;
+    }
   }
 
   async getGateCommand(machineId: string): Promise<{ openOuter: boolean; sessionId: string } | null> {
-    this.checkDb();
-    const ref = this.database!.ref(`maquinas/${machineId}/gate_command`);
-    const snap = await ref.once('value');
-    const val = snap.val();
-    if (!val) return null;
-    await ref.remove();
-    return val as { openOuter: boolean; sessionId: string };
+    try {
+      const val = await this.restRequest('GET', `/maquinas/${machineId}/gate_command`);
+      if (!val) return null;
+      await this.restRequest('DELETE', `/maquinas/${machineId}/gate_command`);
+      return val as { openOuter: boolean; sessionId: string };
+    } catch { return null; }
   }
 
   async setSecondValidation(sessionId: string, esBotella: boolean, machineId: string) {
-    this.checkDb();
-    await this.database!.ref(`sessions/${sessionId}/validacion2`).set({
-      esBotella,
-      machineId,
-      timestamp: Date.now(),
-    });
+    try {
+      await this.restRequest('PUT', `/sessions/${sessionId}/validacion2`, {
+        esBotella, machineId, timestamp: Date.now(),
+      });
+    } catch (e) {
+      this.logger.warn(`setSecondValidation error: ${(e as Error).message}`);
+      throw e;
+    }
   }
 
   async clearMachineSession(machineId: string) {
-    this.checkDb();
-    await this.database!.ref(`maquinas/${machineId}`).update({
-      sesion_activa: null,
-      gate_command: null,
-    });
+    try {
+      await this.restRequest('PATCH', `/maquinas/${machineId}`, {
+        sesion_activa: null,
+        gate_command: null,
+      });
+    } catch (e) {
+      this.logger.warn(`clearMachineSession error: ${(e as Error).message}`);
+      throw e;
+    }
   }
 
-  async getSessionStatus(sessionId: string): Promise<{ validacion2?: any; botellas?: any } | null> {
-    this.checkDb();
-    const snap = await this.database!.ref(`sessions/${sessionId}`).once('value');
-    return snap.val();
+  async getSessionStatus(sessionId: string): Promise<any> {
+    try {
+      return await this.restRequest('GET', `/sessions/${sessionId}`);
+    } catch { return null; }
   }
 }

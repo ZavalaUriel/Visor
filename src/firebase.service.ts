@@ -74,4 +74,34 @@ export class FirebaseService implements OnModuleInit {
     this.checkDb();
     await this.database!.ref(`maquinas/${machineId}/sesion_activa`).set(sessionId);
   }
+
+  async setGateCommand(machineId: string, openOuter: boolean, sessionId: string) {
+    this.checkDb();
+    await this.database!.ref(`maquinas/${machineId}/gate_command`).set({ openOuter, sessionId });
+  }
+
+  async getGateCommand(machineId: string): Promise<{ openOuter: boolean; sessionId: string } | null> {
+    this.checkDb();
+    const ref = this.database!.ref(`maquinas/${machineId}/gate_command`);
+    const snap = await ref.once('value');
+    const val = snap.val();
+    if (!val) return null;
+    await ref.remove();
+    return val as { openOuter: boolean; sessionId: string };
+  }
+
+  async setSecondValidation(sessionId: string, esBotella: boolean, machineId: string) {
+    this.checkDb();
+    await this.database!.ref(`sessions/${sessionId}/validacion2`).set({
+      esBotella,
+      machineId,
+      timestamp: Date.now(),
+    });
+  }
+
+  async getSessionStatus(sessionId: string): Promise<{ validacion2?: any; botellas?: any } | null> {
+    this.checkDb();
+    const snap = await this.database!.ref(`sessions/${sessionId}`).once('value');
+    return snap.val();
+  }
 }

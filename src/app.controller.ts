@@ -98,4 +98,30 @@ export class AppController {
       body.esBotella ?? true,
     );
   }
+
+  @Get('gate-command/:machineId')
+  async getGateCommand(@Param('machineId') machineId: string) {
+    const cmd = await this.appService.getGateCommand(machineId);
+    if (!cmd) return { openOuter: false };
+    return cmd;
+  }
+
+  @Post('machine-confirm')
+  @HttpCode(200)
+  async machineConfirm(@Body() body: { sessionId: string; machineId: string; esBotella: boolean }) {
+    if (!body.sessionId || !body.machineId) {
+      throw new BadRequestException('sessionId y machineId son requeridos');
+    }
+    return this.appService.confirmMachineDetection(
+      body.sessionId,
+      body.machineId,
+      body.esBotella,
+    );
+  }
+
+  @Get('session-status/:sessionId')
+  async getSessionStatus(@Param('sessionId') sessionId: string) {
+    const status = await this.appService.getSessionStatus(sessionId);
+    return status ?? {};
+  }
 }

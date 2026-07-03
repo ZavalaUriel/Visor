@@ -88,6 +88,7 @@ export class AppService {
     try {
       await this.firebase.setFirstValidation(sessionId, esBotella, machineId);
       await this.firebase.setActiveSession(machineId, sessionId);
+      await this.firebase.setGateCommand(machineId, true, sessionId);
       return { success: true };
     } catch (e) {
       console.warn(`[Visor] Error registrando validación 1: ${(e as Error).message}`);
@@ -98,6 +99,36 @@ export class AppService {
   async getActiveSession(machineId: string): Promise<string | null> {
     try {
       return await this.firebase.getActiveSession(machineId);
+    } catch {
+      return null;
+    }
+  }
+
+  async getGateCommand(machineId: string) {
+    try {
+      return await this.firebase.getGateCommand(machineId);
+    } catch {
+      return null;
+    }
+  }
+
+  async confirmMachineDetection(
+    sessionId: string,
+    machineId: string,
+    esBotella: boolean,
+  ): Promise<{ success: boolean }> {
+    try {
+      await this.firebase.setSecondValidation(sessionId, esBotella, machineId);
+      return { success: true };
+    } catch (e) {
+      console.warn(`[Visor] Error registrando validación 2: ${(e as Error).message}`);
+      return { success: false };
+    }
+  }
+
+  async getSessionStatus(sessionId: string) {
+    try {
+      return await this.firebase.getSessionStatus(sessionId);
     } catch {
       return null;
     }

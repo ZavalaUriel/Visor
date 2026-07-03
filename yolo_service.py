@@ -43,10 +43,17 @@ except Exception as e:
 
 
 def preprocess_image(pil_image: Image.Image) -> np.ndarray:
-    enhancer = ImageEnhance.Contrast(pil_image)
-    img = enhancer.enhance(1.2)
-    enhancer = ImageEnhance.Sharpness(img)
+    MIN_DIM = 416
+    if min(pil_image.size) < MIN_DIM:
+        ratio = MIN_DIM / min(pil_image.size)
+        new_size = (int(pil_image.width * ratio), int(pil_image.height * ratio))
+        pil_image = pil_image.resize(new_size, Image.LANCZOS)
+    enhancer = ImageEnhance.Brightness(pil_image)
+    img = enhancer.enhance(1.15)
+    enhancer = ImageEnhance.Contrast(img)
     img = enhancer.enhance(1.3)
+    enhancer = ImageEnhance.Sharpness(img)
+    img = enhancer.enhance(1.4)
     if max(img.size) > 1280:
         ratio = 1280 / max(img.size)
         new_size = (int(img.width * ratio), int(img.height * ratio))

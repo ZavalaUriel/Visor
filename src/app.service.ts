@@ -142,9 +142,14 @@ export class AppService {
     sessionId: string,
     machineId: string,
     esBotella: boolean,
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: boolean; count?: number }> {
     try {
       await this.firebase.setSecondValidation(sessionId, esBotella, machineId);
+      if (esBotella) {
+        const count = await this.firebase.incrementBottleCount(sessionId);
+        console.log(`[Visor] Botella confirmada y contada. Sesión: ${sessionId}, Total: ${count}`);
+        return { success: true, count };
+      }
       return { success: true };
     } catch (e) {
       console.warn(`[Visor] Error registrando validación 2: ${(e as Error).message}`);

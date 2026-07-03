@@ -80,6 +80,21 @@ export class AppService {
     }
   }
 
+  async validateFirstValidation(
+    sessionId: string,
+    machineId: string,
+    esBotella: boolean,
+  ): Promise<{ success: boolean }> {
+    try {
+      await this.firebase.setFirstValidation(sessionId, esBotella, machineId);
+      await this.firebase.setActiveSession(machineId, sessionId);
+      return { success: true };
+    } catch (e) {
+      console.warn(`[Visor] Error registrando validación 1: ${(e as Error).message}`);
+      return { success: false };
+    }
+  }
+
   async getActiveSession(machineId: string): Promise<string | null> {
     try {
       return await this.firebase.getActiveSession(machineId);

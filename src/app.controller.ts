@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Headers,
@@ -83,5 +84,18 @@ export class AppController {
   async getActiveSession(@Param('machineId') machineId: string) {
     const sessionId = await this.appService.getActiveSession(machineId);
     return { sessionId };
+  }
+
+  @Post('machine-validate')
+  @HttpCode(200)
+  async machineValidate(@Body() body: { sessionId: string; machineId: string; esBotella: boolean }) {
+    if (!body.sessionId || !body.machineId) {
+      throw new BadRequestException('sessionId y machineId son requeridos');
+    }
+    return this.appService.validateFirstValidation(
+      body.sessionId,
+      body.machineId,
+      body.esBotella ?? true,
+    );
   }
 }

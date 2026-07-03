@@ -62,11 +62,10 @@ export class FirebaseService implements OnModuleInit {
 
   async setFirstValidation(sessionId: string, esBotella: boolean, machineId: string) {
     this.checkDb();
-    const ref = this.database!.ref(`sessions/${sessionId}/validacion1`);
-    await ref.set({
-      esBotella,
-      machineId,
-      timestamp: Date.now(),
+    const ref = this.database!.ref(`sessions/${sessionId}`);
+    await ref.update({
+      validacion1: { esBotella, machineId, timestamp: Date.now() },
+      validacion2: null,
     });
   }
 
@@ -96,6 +95,14 @@ export class FirebaseService implements OnModuleInit {
       esBotella,
       machineId,
       timestamp: Date.now(),
+    });
+  }
+
+  async clearMachineSession(machineId: string) {
+    this.checkDb();
+    await this.database!.ref(`maquinas/${machineId}`).update({
+      sesion_activa: null,
+      gate_command: null,
     });
   }
 

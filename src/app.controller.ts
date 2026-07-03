@@ -119,6 +119,12 @@ export class AppController {
     );
   }
 
+  @Post('machine-cleanup/:machineId')
+  @HttpCode(200)
+  async machineCleanup(@Param('machineId') machineId: string) {
+    return this.appService.clearMachineSession(machineId);
+  }
+
   @Get('session-status/:sessionId')
   async getSessionStatus(@Param('sessionId') sessionId: string) {
     const status = await this.appService.getSessionStatus(sessionId);

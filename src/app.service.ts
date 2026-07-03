@@ -126,6 +126,15 @@ export class AppService {
     }
   }
 
+  async clearMachineSession(machineId: string): Promise<{ success: boolean }> {
+    try {
+      await this.firebase.clearMachineSession(machineId);
+      return { success: true };
+    } catch {
+      return { success: false };
+    }
+  }
+
   async getSessionStatus(sessionId: string) {
     try {
       return await this.firebase.getSessionStatus(sessionId);

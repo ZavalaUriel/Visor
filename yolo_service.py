@@ -3,6 +3,7 @@ import sys
 import io
 import json
 import os
+import time
 import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -77,6 +78,13 @@ class YoloRequestHandler(BaseHTTPRequestHandler):
                     return
 
                 image_bytes = self.rfile.read(content_length)
+
+                debug_dir = os.path.join(os.path.dirname(__file__), "debug_images")
+                os.makedirs(debug_dir, exist_ok=True)
+                debug_path = os.path.join(debug_dir, f"yolo_{int(time.time())}.jpg")
+                with open(debug_path, "wb") as f:
+                    f.write(image_bytes)
+                print(f"[YOLO DEBUG] Imagen guardada: {debug_path} ({len(image_bytes)} bytes)")
 
                 pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
                 img_array = preprocess_image(pil_image)

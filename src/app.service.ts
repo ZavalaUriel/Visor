@@ -39,7 +39,7 @@ export class AppService {
             'Content-Type': 'application/octet-stream',
             'Content-Length': buffer.length,
           },
-          timeout: 15000,
+          timeout: 30000,
           family: 4,
           agent: false,
         };

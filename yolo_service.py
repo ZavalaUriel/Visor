@@ -8,7 +8,7 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 try:
-    from PIL import Image, ImageEnhance
+    from PIL import Image, ImageEnhance, ImageOps
 except ImportError:
     print("Error: PIL (Pillow) is not installed. Please run: pip install Pillow")
     sys.exit(1)
@@ -24,7 +24,7 @@ MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "yolov8s.pt")
 CONF_THRESHOLD = float(os.environ.get("YOLO_CONF_THRESHOLD", "0.15"))
 
 # Solo botella (clase 39 de COCO)
-BOTTLE_CLASSES = {39}
+BOTTLE_CLASSES = {39, 40, 41}
 
 print(f"Cargando modelo YOLO desde '{MODEL_PATH}'...")
 try:
@@ -43,21 +43,27 @@ except Exception as e:
 
 
 def preprocess_image(pil_image: Image.Image) -> np.ndarray:
-    MIN_DIM = 416
-    if min(pil_image.size) < MIN_DIM:
-        ratio = MIN_DIM / min(pil_image.size)
-        new_size = (int(pil_image.width * ratio), int(pil_image.height * ratio))
-        pil_image = pil_image.resize(new_size, Image.LANCZOS)
-    enhancer = ImageEnhance.Brightness(pil_image)
-    img = enhancer.enhance(1.15)
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(1.3)
-    enhancer = ImageEnhance.Sharpness(img)
-    img = enhancer.enhance(1.4)
+    img = pil_image.convert("RGB")
+    arr = np.array(img).astype(np.float32)
+    avg_brightness = arr.mean()
+
     if max(img.size) > 1280:
         ratio = 1280 / max(img.size)
         new_size = (int(img.width * ratio), int(img.height * ratio))
         img = img.resize(new_size, Image.LANCZOS)
+
+    if avg_brightness < 50:
+        gamma = max(0.15, avg_brightness / 100.0)
+        arr = np.array(img).astype(np.float32)
+        arr = ((arr / 255.0) ** gamma) * 255
+        arr = np.clip(arr, 0, 255).astype(np.uint8)
+        img = Image.fromarray(arr)
+        img = ImageOps.autocontrast(img, cutoff=2)
+        img = ImageEnhance.Sharpness(img).enhance(1.5)
+    else:
+        img = ImageEnhance.Brightness(img).enhance(1.1)
+        img = ImageEnhance.Sharpness(img).enhance(1.2)
+
     return np.array(img)
 
 

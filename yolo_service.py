@@ -23,9 +23,8 @@ PORT = int(os.environ.get("YOLO_PORT", 8000))
 MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "yolov8s.pt")
 CONF_THRESHOLD = float(os.environ.get("YOLO_CONF_THRESHOLD", "0.15"))
 
-# Clases de COCO que consideramos "botella reciclable"
-#   39: bottle, 40: wine glass, 41: cup, 75: vase
-BOTTLE_CLASSES = {39, 40, 41, 75}
+# Solo botella (clase 39 de COCO)
+BOTTLE_CLASSES = {39}
 
 print(f"Cargando modelo YOLO desde '{MODEL_PATH}'...")
 try:

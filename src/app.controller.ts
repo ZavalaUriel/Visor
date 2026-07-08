@@ -10,8 +10,6 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
 
@@ -32,18 +30,6 @@ export class AppController {
       throw new BadRequestException('No se recibio el archivo de imagen.');
     }
 
-    try {
-      const debugDir = path.join(process.cwd(), 'debug_images');
-      if (!fs.existsSync(debugDir)) {
-        fs.mkdirSync(debugDir, { recursive: true });
-      }
-      const filename = `captura_${Date.now()}.jpg`;
-      const filePath = path.join(debugDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
-    } catch (err) {
-      console.error(`[ERROR] No se pudo guardar la imagen de depuración: ${err}`);
-    }
-
     return this.appService.detectFromBuffer(
       file.buffer,
       file.mimetype,
@@ -60,19 +46,6 @@ export class AppController {
   ) {
     if (!file?.buffer) {
       throw new BadRequestException('No se recibio el archivo de imagen.');
-    }
-
-    // Guardar imagen de depuración
-    try {
-      const debugDir = path.join(process.cwd(), 'debug_images');
-      if (!fs.existsSync(debugDir)) {
-        fs.mkdirSync(debugDir, { recursive: true });
-      }
-      const filename = `esp32_${Date.now()}.jpg`;
-      const filePath = path.join(debugDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
-    } catch (err) {
-      console.error(`[ERROR] No se pudo guardar imagen ESP32: ${err}`);
     }
 
     const id = machineId ?? 'machine_001';

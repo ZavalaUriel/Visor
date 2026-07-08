@@ -11,11 +11,11 @@ RUN pip install --no-cache-dir ultralytics Pillow
 
 COPY yolo_service.py .
 
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
 
 EXPOSE 8000
 
 ENV YOLO_PORT=8000
-ENV YOLO_MODEL_PATH=yolov8n.pt
+ENV YOLO_MODEL_PATH=yolo11n.pt
 
 CMD ["python3", "yolo_service.py"]

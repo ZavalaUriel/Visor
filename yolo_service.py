@@ -21,10 +21,14 @@ except ImportError:
 
 PORT = int(os.environ.get("YOLO_PORT", 8000))
 MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "yolov8s.pt")
-CONF_THRESHOLD = float(os.environ.get("YOLO_CONF_THRESHOLD", "0.15"))
+CONF_THRESHOLD = float(os.environ.get("YOLO_CONF_THRESHOLD", "0.35"))
+# Límite de tamaño de imagen aceptada (bytes) para evitar agotar memoria
+MAX_BODY_BYTES = int(os.environ.get("YOLO_MAX_BODY_BYTES", str(20 * 1024 * 1024)))
+# Guardar imágenes de depuración solo si se pide explícitamente
+DEBUG_IMAGES = os.environ.get("DEBUG_IMAGES", "false").lower() == "true"
 
 # Solo botella (clase 39 de COCO)
-BOTTLE_CLASSES = {39, 40, 41}
+BOTTLE_CLASSES = {39}
 
 print(f"Cargando modelo YOLO desde '{MODEL_PATH}'...")
 try:
@@ -81,15 +85,19 @@ class YoloRequestHandler(BaseHTTPRequestHandler):
                 if content_length == 0:
                     self.send_error_response(400, "Cuerpo de solicitud vacío")
                     return
+                if content_length > MAX_BODY_BYTES:
+                    self.send_error_response(413, "Imagen demasiado grande")
+                    return
 
                 image_bytes = self.rfile.read(content_length)
 
-                debug_dir = os.path.join(os.path.dirname(__file__), "debug_images")
-                os.makedirs(debug_dir, exist_ok=True)
-                debug_path = os.path.join(debug_dir, f"yolo_{int(time.time())}.jpg")
-                with open(debug_path, "wb") as f:
-                    f.write(image_bytes)
-                print(f"[YOLO DEBUG] Imagen guardada: {debug_path} ({len(image_bytes)} bytes)")
+                if DEBUG_IMAGES:
+                    debug_dir = os.path.join(os.path.dirname(__file__), "debug_images")
+                    os.makedirs(debug_dir, exist_ok=True)
+                    debug_path = os.path.join(debug_dir, f"yolo_{int(time.time())}.jpg")
+                    with open(debug_path, "wb") as f:
+                        f.write(image_bytes)
+                    print(f"[YOLO DEBUG] Imagen guardada: {debug_path} ({len(image_bytes)} bytes)")
 
                 pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
                 img_array = preprocess_image(pil_image)

@@ -6,8 +6,9 @@ services:
       dockerfile: Dockerfile.yolo
     container_name: argus_yolo
     env_file: ../ecocycle.env
+    # Solo accesible desde la máquina local: nada externo necesita hablar con YOLO
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
   backend:

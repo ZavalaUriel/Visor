@@ -19,12 +19,15 @@ type UploadedImage = {
   originalname?: string;
 };
 
+// Límite de tamaño para imágenes subidas (evita agotar memoria/disco)
+const IMAGE_UPLOAD_LIMITS = { limits: { fileSize: 10 * 1024 * 1024, files: 1 } };
+
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Post('detect')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', IMAGE_UPLOAD_LIMITS))
   async detect(@UploadedFile() file?: UploadedImage) {
     if (!file?.buffer) {
       throw new BadRequestException('No se recibio el archivo de imagen.');
@@ -39,7 +42,7 @@ export class AppController {
 
   @Post('machine-detect')
   @HttpCode(200)
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', IMAGE_UPLOAD_LIMITS))
   async machineDetect(
     @UploadedFile() file?: UploadedImage,
     @Headers('x-machine-id') machineId?: string,

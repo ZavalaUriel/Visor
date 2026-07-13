@@ -1,11 +1,15 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from './firebase.service';
+import { GeminiService } from './gemini.service';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type DetectionResult = {
   botella: boolean;
   detected_objects?: any[];
+  source?: 'gemini' | 'yolo';
 };
 
 @Injectable()
@@ -15,6 +19,7 @@ export class AppService {
   constructor(
     private readonly configService: ConfigService,
     private readonly firebase: FirebaseService,
+    private readonly gemini: GeminiService,
   ) {
     const port = this.configService.get<string>('YOLO_PORT') ?? '8000';
     const host = this.configService.get<string>('YOLO_HOST') ?? '172.18.0.2';
@@ -24,9 +29,23 @@ export class AppService {
 
   async detectFromBuffer(
     buffer: Buffer,
-    _mimeType?: string,
+    mimeType?: string,
     _filename?: string,
   ): Promise<DetectionResult> {
+    this.saveDebugImage(buffer);
+    if (this.gemini.isEnabled()) {
+      try {
+        const result = await this.gemini.detect(buffer, mimeType ?? 'image/jpeg');
+        console.log(`[Gemini] botella=${result.botella} detalle=${JSON.stringify(result.detected_objects)}`);
+        return result;
+      } catch (e) {
+        console.warn(`[Gemini] Fallo, usando YOLO como respaldo: ${(e as Error).message}`);
+      }
+    }
+    return this.detectWithYolo(buffer);
+  }
+
+  private async detectWithYolo(buffer: Buffer): Promise<DetectionResult> {
     try {
       const result = await new Promise<DetectionResult>((resolve, reject) => {
         const urlObj = new URL(this.yoloUrl);
@@ -75,7 +94,7 @@ export class AppService {
         req.end();
       });
 
-      return result;
+      return { ...result, source: 'yolo' };
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -172,6 +191,20 @@ export class AppService {
     } catch {
       return null;
     }
+  }
+
+  private saveDebugImage(buffer: Buffer) {
+    // Solo guardar imágenes de depuración si se pide explícitamente:
+    // en producción llenan el disco y retienen datos innecesarios.
+    if (this.configService.get<string>('DEBUG_IMAGES') !== 'true') {
+      return;
+    }
+    const debugDir = path.join(process.cwd(), 'debug_images');
+    const file = path.join(debugDir, `visor_${Date.now()}.jpg`);
+    fs.promises
+      .mkdir(debugDir, { recursive: true })
+      .then(() => fs.promises.writeFile(file, buffer))
+      .catch((e: Error) => console.warn(`[Debug] No se pudo guardar imagen: ${e.message}`));
   }
 
   private isDetectionResult(value: unknown): value is DetectionResult {
